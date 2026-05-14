@@ -140,10 +140,10 @@
   });
 
   /* ==================================================================
-     3. DOCX TEMPLATE FILLING (XML-level text replacement)
+     3. DOCX TEMPLATE FILLING (pure string replacement — no XML parsing)
+     Avoids DOMParser/XMLSerializer which can destroy text boxes, lines,
+     drawings, and other rich OOXML features.
      ================================================================== */
-
-  var W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
   /**
    * Fill the template with one set of replacement values.
@@ -158,112 +158,147 @@
       if (/^word\/(header|footer)\d*\.xml$/.test(path)) parts.push(path);
     });
 
+    // Build safe replacements (XML-escape the values)
+    var safeReplacements = {};
+    for (var key in replacements) {
+      safeReplacements[key] = escapeXml(replacements[key]);
+    }
+
     for (var i = 0; i < parts.length; i++) {
       var f = zip.file(parts[i]);
       if (!f) continue;
       var xml = await f.async('string');
-      xml = replacePlaceholders(xml, replacements);
+      xml = replacePlaceholders(xml, safeReplacements);
       zip.file(parts[i], xml);
     }
 
     return zip.generateAsync({ type: 'arraybuffer' });
   }
 
-  /** Parse an XML string, replace placeholders in every <w:p>, serialize back. */
-  function replacePlaceholders(xmlStr, replacements) {
-    var parser = new DOMParser();
-    var doc    = parser.parseFromString(xmlStr, 'application/xml');
-    var paras  = doc.getElementsByTagNameNS(W_NS, 'p');
-
-    for (var i = 0; i < paras.length; i++) {
-      replaceInParagraph(paras[i], replacements);
-    }
-
-    return new XMLSerializer().serializeToString(doc);
+  /** Escape special XML characters so replacement values don't break the doc. */
+  function escapeXml(str) {
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&apos;');
   }
 
   /**
-   * Replace placeholders inside a single <w:p>, handling the case where
-   * Word splits a placeholder across multiple <w:r>/<w:t> elements.
-   * Preserves all run-level formatting (font, size, bold, color, etc.).
+   * Replace placeholders in the raw XML string without ever parsing it.
+   * This preserves every byte of the original structure (text boxes, VML
+   * shapes, drawings, SmartArt, etc.) — only the placeholder text changes.
+   *
+   * Strategy:
+   *  1. Direct string replacement (covers placeholders inside a single <w:t>).
+   *  2. Cross-run handler: if a placeholder is split across multiple <w:t>
+   *     elements by Word, we find it in each <w:p> block and stitch the
+   *     runs back together.
    */
-  function replaceInParagraph(para, replacements) {
-    var runs = para.getElementsByTagNameNS(W_NS, 'r');
-    if (runs.length === 0) return;
+  function replacePlaceholders(xmlStr, safeReplacements) {
+    for (var ph in safeReplacements) {
+      var val = safeReplacements[ph];
 
-    // Collect every <w:t> and its parent run
-    var items = [];   // { el: w:t node, run: w:r node }
-    for (var ri = 0; ri < runs.length; ri++) {
-      var ts = runs[ri].getElementsByTagNameNS(W_NS, 't');
-      for (var ti = 0; ti < ts.length; ti++) {
-        items.push({ el: ts[ti], run: runs[ri] });
+      // --- Pass 1: simple same-run replacement ---
+      if (xmlStr.indexOf(ph) !== -1) {
+        xmlStr = xmlStr.split(ph).join(val);
       }
-    }
-    if (items.length === 0) return;
 
-    // Build concatenated text and a character map
-    var fullText = '';
-    var charMap  = [];   // index → { item index, char offset within that <w:t> }
-    for (var ii = 0; ii < items.length; ii++) {
-      var txt = items[ii].el.textContent;
-      for (var ci = 0; ci < txt.length; ci++) {
-        charMap.push({ idx: ii, off: ci });
-        fullText += txt[ci];
+      // --- Pass 2: cross-run replacement ---
+      // Only needed if any <w:p> block's concatenated <w:t> text still
+      // contains the placeholder after pass 1 (i.e. it was split across runs).
+      xmlStr = replaceCrossRun(xmlStr, ph, val);
+    }
+    return xmlStr;
+  }
+
+  /**
+   * Handle the case where Word split a placeholder across multiple <w:r>/<w:t>
+   * elements.  Works entirely on the raw XML string — no DOM parsing.
+   *
+   * For each <w:p>…</w:p> block:
+   *   1. Extract all <w:t …>text</w:t> fragments and their string offsets.
+   *   2. Concatenate the text.  If the placeholder isn't present, skip.
+   *   3. Put the replacement value into the first <w:t> that touched the
+   *      placeholder and empty the remaining fragments.
+   */
+  function replaceCrossRun(xmlStr, placeholder, value) {
+    // Regex to match paragraph blocks (non-greedy within <w:p>…</w:p>)
+    var paraRe = /<w:p[\s>][\s\S]*?<\/w:p>/g;
+
+    return xmlStr.replace(paraRe, function (paraXml) {
+      // Collect every <w:t …>text</w:t> inside this paragraph
+      var tRe    = /(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
+      var pieces = [];   // { open, text, close, index, length } in order
+      var m;
+
+      while ((m = tRe.exec(paraXml)) !== null) {
+        pieces.push({
+          open:   m[1],          // e.g.  <w:t xml:space="preserve">
+          text:   m[2],          // the actual text content
+          close:  m[3],          // </w:t>
+          start:  m.index,       // offset inside paraXml
+          len:    m[0].length    // full match length
+        });
       }
-    }
 
-    // Apply each replacement (may appear more than once)
-    var keys = Object.keys(replacements);
-    for (var ki = 0; ki < keys.length; ki++) {
-      var ph  = keys[ki];
-      var val = replacements[ph];
-      var pos = fullText.indexOf(ph);
+      if (pieces.length === 0) return paraXml;
 
-      while (pos !== -1) {
-        var endPos   = pos + ph.length;
-        var firstIdx = charMap[pos].idx;
-        var firstOff = charMap[pos].off;
-        var lastIdx  = charMap[endPos - 1].idx;
-        var lastOff  = charMap[endPos - 1].off;
+      // Build concatenated plain text
+      var fullText = pieces.map(function (p) { return p.text; }).join('');
+      var idx = fullText.indexOf(placeholder);
+      if (idx === -1) return paraXml;  // nothing to do
 
-        var firstEl = items[firstIdx].el;
-        var lastEl  = items[lastIdx].el;
+      // Walk through occurrences
+      while (idx !== -1) {
+        var endIdx = idx + placeholder.length;
 
-        if (firstIdx === lastIdx) {
-          // Placeholder is inside a single <w:t>
-          firstEl.textContent =
-            firstEl.textContent.substring(0, firstOff) +
-            val +
-            firstEl.textContent.substring(lastOff + 1);
-        } else {
-          // Spans multiple <w:t> elements
-          var afterLast = lastEl.textContent.substring(lastOff + 1);
-          firstEl.textContent = firstEl.textContent.substring(0, firstOff) + val;
+        // Map character positions → piece indexes
+        var charPos = 0;
+        var firstPiece = -1, firstOff = 0, lastPiece = -1, lastOff = 0;
 
-          // Clear intermediate <w:t>s
-          for (var m = firstIdx + 1; m < lastIdx; m++) {
-            items[m].el.textContent = '';
+        for (var pi = 0; pi < pieces.length; pi++) {
+          var pLen = pieces[pi].text.length;
+          if (firstPiece === -1 && charPos + pLen > idx) {
+            firstPiece = pi;
+            firstOff   = idx - charPos;
           }
-          lastEl.textContent = afterLast;
+          if (charPos + pLen >= endIdx) {
+            lastPiece = pi;
+            lastOff   = endIdx - charPos;
+            break;
+          }
+          charPos += pLen;
         }
 
-        // Ensure xml:space="preserve" so leading/trailing spaces survive
-        firstEl.setAttribute('xml:space', 'preserve');
+        // Rewrite the text content of the affected pieces
+        var before = pieces[firstPiece].text.substring(0, firstOff);
+        var after  = pieces[lastPiece].text.substring(lastOff);
 
-        // Rebuild charMap for further replacements
-        fullText = '';
-        charMap  = [];
-        for (var ri2 = 0; ri2 < items.length; ri2++) {
-          var t2 = items[ri2].el.textContent;
-          for (var ci2 = 0; ci2 < t2.length; ci2++) {
-            charMap.push({ idx: ri2, off: ci2 });
-            fullText += t2[ci2];
+        pieces[firstPiece].text = before + value + (firstPiece === lastPiece ? after : '');
+
+        if (firstPiece !== lastPiece) {
+          for (var ci = firstPiece + 1; ci < lastPiece; ci++) {
+            pieces[ci].text = '';
           }
+          pieces[lastPiece].text = after;
         }
 
-        pos = fullText.indexOf(ph);
+        // Recheck for another occurrence
+        fullText = pieces.map(function (p) { return p.text; }).join('');
+        idx = fullText.indexOf(placeholder);
       }
-    }
+
+      // Rebuild the paragraph XML from right to left (so offsets stay valid)
+      var result = paraXml;
+      for (var ri = pieces.length - 1; ri >= 0; ri--) {
+        var pc    = pieces[ri];
+        var rebuilt = pc.open + pc.text + pc.close;
+        result = result.substring(0, pc.start) + rebuilt + result.substring(pc.start + pc.len);
+      }
+
+      return result;
+    });
   }
 
   /* ==================================================================
