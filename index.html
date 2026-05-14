@@ -17,6 +17,52 @@
       <p class="privacy-note">&#128274; All processing happens in your browser. No data leaves your machine.</p>
     </header>
 
+    <!-- Instructions -->
+    <section class="step-card" id="step-instructions">
+      <h2>
+        <span class="step-number">?</span> How to Use This Tool
+        <button class="toggle-btn" id="toggle-instructions" aria-expanded="true" aria-controls="instructions-body">Hide</button>
+      </h2>
+      <div id="instructions-body">
+        <p class="instructions-intro">Before you begin, make sure you have two files ready on your computer:</p>
+
+        <div class="instructions-columns">
+          <div class="instruction-block">
+            <h3>&#128196; Certificate Template (.docx)</h3>
+            <ol>
+              <li>Open your certificate template in <strong>Microsoft Word</strong>.</li>
+              <li>Where the attendee's name should appear, type <code>[name]</code>.</li>
+              <li>Where the organization should appear, type <code>[organization]</code>.</li>
+              <li>Where the date should appear, type <code>[date]</code>.</li>
+              <li>Save the file as a <strong>.docx</strong> (Word Document).</li>
+            </ol>
+            <p class="instruction-tip">&#128161; You can use different placeholder text &mdash; just make sure it matches what you enter in Step&nbsp;2 below.</p>
+          </div>
+
+          <div class="instruction-block">
+            <h3>&#128202; Attendee Spreadsheet (.xlsx)</h3>
+            <ol>
+              <li>Open <strong>Microsoft Excel</strong> and create a new workbook (or use an existing one).</li>
+              <li>Add column headers in <strong>Row 1</strong> &mdash; for example: <code>Name</code>, <code>Organization</code>, <code>Date of Attendance</code>.</li>
+              <li>Fill in one row per attendee starting in <strong>Row 2</strong>.</li>
+              <li>Save the file as <strong>.xlsx</strong> (Excel Workbook).</li>
+            </ol>
+            <p class="instruction-tip">&#128161; Column names can be anything you like. You will match them to the right fields in Step&nbsp;2.</p>
+          </div>
+        </div>
+
+        <div class="instruction-block">
+          <h3>&#127891; Generating Your Certificates</h3>
+          <ol>
+            <li>In <strong>Step 1</strong> below, click each box to select your spreadsheet and your template from your computer.</li>
+            <li>In <strong>Step 2</strong>, the tool will show a preview of your data. Use the dropdowns to tell it which column is the name, organization, and date. Verify the placeholder text matches your template.</li>
+            <li>In <strong>Step 3</strong>, choose your output format (PDF, DOCX, or both) and click <strong>Generate Certificates</strong>.</li>
+            <li>When the progress bar finishes, click <strong>Download All Certificates (ZIP)</strong> to save them to your computer.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
     <!-- Step 1: Upload -->
     <section class="step-card" id="step-upload">
       <h2><span class="step-number">1</span> Upload Files</h2>
@@ -123,5 +169,19 @@
 
   <!-- Application -->
   <script src="cert_generator_app.js"></script>
+
+  <!-- Instructions toggle -->
+  <script>
+    (function() {
+      var btn = document.getElementById('toggle-instructions');
+      var body = document.getElementById('instructions-body');
+      btn.addEventListener('click', function() {
+        var open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : '';
+        btn.textContent = open ? 'Show' : 'Hide';
+        btn.setAttribute('aria-expanded', String(!open));
+      });
+    })();
+  </script>
 </body>
 </html>

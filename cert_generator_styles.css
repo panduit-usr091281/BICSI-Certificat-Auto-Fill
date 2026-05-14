@@ -260,6 +260,63 @@ body {
   color: #333;
 }
 
+/* ---------- Instructions ---------- */
+.instructions-intro {
+  margin-bottom: 1rem;
+  font-size: .95rem;
+  color: #444;
+}
+.instructions-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 700px) { .instructions-columns { grid-template-columns: 1fr; } }
+
+.instruction-block {
+  background: #f8f9fb;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: .75rem;
+}
+.instruction-block h3 {
+  font-size: 1rem;
+  margin-bottom: .6rem;
+}
+.instruction-block ol {
+  padding-left: 1.25rem;
+  font-size: .9rem;
+  color: #333;
+}
+.instruction-block ol li {
+  margin-bottom: .35rem;
+}
+.instruction-block code {
+  background: #e8eaed;
+  padding: .1rem .35rem;
+  border-radius: 4px;
+  font-size: .85rem;
+  font-family: Consolas, "Courier New", monospace;
+}
+.instruction-tip {
+  margin-top: .6rem;
+  font-size: .82rem;
+  color: #666;
+}
+.toggle-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: .25rem .75rem;
+  font-size: .8rem;
+  cursor: pointer;
+  color: #555;
+}
+.toggle-btn:hover { background: #f0f0f0; }
+
 /* ---------- Render container (off-screen for PDF pipeline) ---------- */
 #render-container {
   position: fixed;
