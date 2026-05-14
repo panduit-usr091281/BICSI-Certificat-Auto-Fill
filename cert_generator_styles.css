@@ -1,0 +1,271 @@
+/* ===== cert_generator_styles.css =====
+   Styles for the BICSI Certificate Auto-Fill web tool.
+   Designed for GitHub Pages hosting — no framework dependencies.
+   ============================================= */
+
+/* ---------- Reset & base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ---------- Layout ---------- */
+.app-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* ---------- Header ---------- */
+.app-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.app-header h1 {
+  font-size: 2rem;
+  margin-bottom: .4rem;
+}
+.subtitle {
+  font-size: 1.05rem;
+  color: #555;
+}
+.privacy-note {
+  margin-top: .5rem;
+  font-size: .85rem;
+  color: #2e7d32;
+  background: #e8f5e9;
+  display: inline-block;
+  padding: .3rem .75rem;
+  border-radius: 6px;
+}
+
+/* ---------- Step cards ---------- */
+.step-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+.step-card h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #0066cc;
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.hidden { display: none !important; }
+
+/* ---------- Upload zones ---------- */
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 600px) { .upload-grid { grid-template-columns: 1fr; } }
+
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #c5cae9;
+  border-radius: 10px;
+  padding: 2rem 1rem;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  text-align: center;
+  min-height: 150px;
+}
+.upload-zone:hover {
+  border-color: #0066cc;
+  background: #f5f8ff;
+}
+.upload-zone.uploaded {
+  border-color: #2e7d32;
+  background: #f1f8e9;
+}
+.upload-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+.upload-text { color: #666; font-size: .95rem; }
+.upload-filename {
+  margin-top: .4rem;
+  font-weight: 600;
+  color: #0066cc;
+  font-size: .9rem;
+  word-break: break-all;
+}
+
+/* ---------- Data preview ---------- */
+.data-preview-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1.25rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+.data-preview {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.data-preview th, .data-preview td {
+  padding: .5rem .75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+.data-preview th {
+  background: #f5f7fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+.data-preview tr:last-child td { border-bottom: none; }
+
+/* ---------- Mapping ---------- */
+.mapping-hint {
+  font-size: .9rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+.mapping-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.mapping-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  align-items: end;
+}
+@media (max-width: 600px) { .mapping-row { grid-template-columns: 1fr; } }
+
+.mapping-field label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 600;
+  margin-bottom: .25rem;
+  color: #444;
+}
+.mapping-field select,
+.mapping-field input {
+  width: 100%;
+  padding: .5rem .65rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: .9rem;
+  background: #fff;
+}
+.mapping-field select:focus,
+.mapping-field input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0,102,204,.15);
+}
+
+/* ---------- Output options ---------- */
+.output-options {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .5rem;
+}
+.output-options label { font-weight: 600; font-size: .9rem; }
+.output-options select {
+  padding: .45rem .6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: .9rem;
+}
+.format-note {
+  font-size: .82rem;
+  color: #666;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary, .btn-download {
+  display: inline-block;
+  padding: .7rem 1.6rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, transform .1s;
+}
+.btn-primary {
+  background: #0066cc;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: #0052a3; }
+.btn-primary:active:not(:disabled) { transform: scale(.98); }
+.btn-primary:disabled {
+  background: #a0c4e8;
+  cursor: not-allowed;
+}
+.btn-download {
+  background: #2e7d32;
+  color: #fff;
+  font-size: 1.05rem;
+  padding: .8rem 2rem;
+}
+.btn-download:hover { background: #1b5e20; }
+
+/* ---------- Progress ---------- */
+.progress-area { margin-top: 1.25rem; }
+.progress-track {
+  width: 100%;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #0066cc, #00aaff);
+  border-radius: 7px;
+  transition: width .3s ease;
+}
+.status-text {
+  margin-top: .5rem;
+  font-size: .9rem;
+  color: #555;
+}
+
+/* ---------- Download section ---------- */
+#step-download { text-align: center; }
+#result-summary {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* ---------- Render container (off-screen for PDF pipeline) ---------- */
+#render-container {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 816px;   /* 8.5 in @ 96 DPI */
+  background: #fff;
+  z-index: -1;
+}

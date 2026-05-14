@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BICSI Certificate Auto-Fill</title>
+  <link rel="stylesheet" href="cert_generator_styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <h1>&#127891; BICSI Certificate Generator</h1>
+      <p class="subtitle">Upload your spreadsheet and certificate template to generate filled certificates automatically.</p>
+      <p class="privacy-note">&#128274; All processing happens in your browser. No data leaves your machine.</p>
+    </header>
+
+    <!-- Step 1: Upload -->
+    <section class="step-card" id="step-upload">
+      <h2><span class="step-number">1</span> Upload Files</h2>
+      <div class="upload-grid">
+        <label class="upload-zone" id="xlsx-zone">
+          <input type="file" id="xlsx-input" accept=".xlsx,.xls" hidden>
+          <div class="upload-icon">&#128202;</div>
+          <span class="upload-text">Click to select spreadsheet (.xlsx)</span>
+          <span class="upload-filename" id="xlsx-label"></span>
+        </label>
+        <label class="upload-zone" id="docx-zone">
+          <input type="file" id="docx-input" accept=".docx" hidden>
+          <div class="upload-icon">&#128196;</div>
+          <span class="upload-text">Click to select certificate template (.docx)</span>
+          <span class="upload-filename" id="docx-label"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Step 2: Map columns -->
+    <section class="step-card hidden" id="step-mapping">
+      <h2><span class="step-number">2</span> Preview &amp; Map Columns</h2>
+      <div class="data-preview-wrapper">
+        <table class="data-preview" id="data-preview"></table>
+      </div>
+      <p class="mapping-hint">Select which spreadsheet column holds each field, then enter the matching placeholder text from your Word template.</p>
+      <div class="mapping-grid">
+        <div class="mapping-row">
+          <div class="mapping-field">
+            <label for="name-col">Full Name column</label>
+            <select id="name-col"></select>
+          </div>
+          <div class="mapping-field">
+            <label for="name-ph">Placeholder in template</label>
+            <input type="text" id="name-ph" value="[name]">
+          </div>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field">
+            <label for="org-col">Organization column</label>
+            <select id="org-col"></select>
+          </div>
+          <div class="mapping-field">
+            <label for="org-ph">Placeholder in template</label>
+            <input type="text" id="org-ph" value="[organization]">
+          </div>
+        </div>
+        <div class="mapping-row">
+          <div class="mapping-field">
+            <label for="date-col">Date of Attendance column</label>
+            <select id="date-col"></select>
+          </div>
+          <div class="mapping-field">
+            <label for="date-ph">Placeholder in template</label>
+            <input type="text" id="date-ph" value="[date]">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Generate -->
+    <section class="step-card hidden" id="step-generate">
+      <h2><span class="step-number">3</span> Generate Certificates</h2>
+      <div class="output-options">
+        <label for="output-format">Output format</label>
+        <select id="output-format">
+          <option value="pdf" selected>PDF (rendered in browser)</option>
+          <option value="docx">DOCX (original template format)</option>
+          <option value="both">Both PDF and DOCX</option>
+        </select>
+      </div>
+      <p class="format-note" id="format-note">
+        <strong>Note:</strong> Browser-rendered PDFs may differ slightly from the original template.
+        For pixel-perfect output choose DOCX and convert with Microsoft Word.
+      </p>
+      <button class="btn-primary" id="btn-generate">Generate Certificates</button>
+      <div class="progress-area hidden" id="progress-area">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p class="status-text" id="status-text"></p>
+      </div>
+    </section>
+
+    <!-- Step 4: Download -->
+    <section class="step-card hidden" id="step-download">
+      <h2>&#9989; Certificates Ready</h2>
+      <p id="result-summary"></p>
+      <button class="btn-download" id="btn-download">&#11015;&#65039; Download All Certificates (ZIP)</button>
+    </section>
+
+  </div>
+
+  <!-- Off-screen container for DOCX rendering (used by PDF pipeline) -->
+  <div id="render-container" aria-hidden="true"></div>
+
+  <!-- External libraries (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview/dist/docx-preview.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Application -->
+  <script src="cert_generator_app.js"></script>
+</body>
+</html>
