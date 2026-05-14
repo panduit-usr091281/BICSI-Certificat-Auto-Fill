@@ -50,7 +50,7 @@
           <ol>
             <li>In <strong>Step 1</strong> below, click each box to select your spreadsheet and your template from your computer.</li>
             <li>In <strong>Step 2</strong>, the tool will show a preview of your data. Use the dropdowns to tell it which column is the Name, Organization, Course Name, and Date of Attendance.</li>
-            <li>In <strong>Step 3</strong>, click <strong>Generate Certificates</strong>. Each attendee gets both a DOCX and a PDF file.</li>
+            <li>In <strong>Step 3</strong>, click <strong>Generate Certificates</strong> and download the ZIP when ready.</li>
             <li>When the progress bar finishes, click <strong>Download All Certificates (ZIP)</strong> to save them to your computer.</li>
           </ol>
         </div>
@@ -111,8 +111,8 @@
     <section class="step-card hidden" id="step-generate">
       <h2><span class="step-number">3</span> Generate Certificates</h2>
       <p class="format-note">
-        Each attendee receives two files: a <strong>DOCX</strong> (pixel-perfect from the original template)
-        and a <strong>PDF</strong> (rendered for easy sharing). For best fidelity, open the DOCX in Microsoft Word.
+        Each attendee receives a filled <strong>DOCX</strong> certificate, pixel-perfect from the original template.
+        Open in Microsoft Word for best results.
       </p>
       <button class="btn-primary" id="btn-generate">Generate Certificates</button>
       <div class="progress-area hidden" id="progress-area">
@@ -132,15 +132,10 @@
 
   </div>
 
-  <!-- Off-screen container for DOCX rendering (used by PDF pipeline) -->
-  <div id="render-container" aria-hidden="true"></div>
-
   <!-- External libraries (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- Application -->
   <script src="cert_generator_app.js"></script>
