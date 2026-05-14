@@ -50,7 +50,7 @@
           <ol>
             <li>In <strong>Step 1</strong> below, click each box to select your spreadsheet and your template from your computer.</li>
             <li>In <strong>Step 2</strong>, the tool will show a preview of your data. Use the dropdowns to tell it which column is the Name, Organization, Course Name, and Date of Attendance.</li>
-            <li>In <strong>Step 3</strong>, choose your output format (PDF, DOCX, or both) and click <strong>Generate Certificates</strong>.</li>
+            <li>In <strong>Step 3</strong>, click <strong>Generate Certificates</strong>. Each attendee gets both a DOCX and a PDF file.</li>
             <li>When the progress bar finishes, click <strong>Download All Certificates (ZIP)</strong> to save them to your computer.</li>
           </ol>
         </div>
@@ -110,17 +110,9 @@
     <!-- Step 3: Generate -->
     <section class="step-card hidden" id="step-generate">
       <h2><span class="step-number">3</span> Generate Certificates</h2>
-      <div class="output-options">
-        <label for="output-format">Output format</label>
-        <select id="output-format">
-          <option value="pdf" selected>PDF (rendered in browser)</option>
-          <option value="docx">DOCX (original template format)</option>
-          <option value="both">Both PDF and DOCX</option>
-        </select>
-      </div>
-      <p class="format-note" id="format-note">
-        <strong>Note:</strong> Browser-rendered PDFs may differ slightly from the original template.
-        For pixel-perfect output choose DOCX and convert with Microsoft Word.
+      <p class="format-note">
+        Each attendee receives two files: a <strong>DOCX</strong> (pixel-perfect from the original template)
+        and a <strong>PDF</strong> (rendered for easy sharing). For best fidelity, open the DOCX in Microsoft Word.
       </p>
       <button class="btn-primary" id="btn-generate">Generate Certificates</button>
       <div class="progress-area hidden" id="progress-area">
@@ -147,7 +139,6 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docx-preview/dist/docx-preview.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
