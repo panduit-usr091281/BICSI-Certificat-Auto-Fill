@@ -29,21 +29,15 @@
         <div class="instructions-columns">
           <div class="instruction-block">
             <h3>&#128196; Certificate Template (.docx)</h3>
-            <ol>
-              <li>Open your certificate template in <strong>Microsoft Word</strong>.</li>
-              <li>Where the attendee's name should appear, type <code>[name]</code>.</li>
-              <li>Where the organization should appear, type <code>[organization]</code>.</li>
-              <li>Where the date should appear, type <code>[date]</code>.</li>
-              <li>Save the file as a <strong>.docx</strong> (Word Document).</li>
-            </ol>
-            <p class="instruction-tip">&#128161; You can use different placeholder text &mdash; just make sure it matches what you enter in Step&nbsp;2 below.</p>
+            <p>Use the standard BICSI certificate Word template. The tool reads the built-in content controls (the clickable fields for Name, Organization, Course, and Date) and fills them automatically &mdash; no special placeholder text is needed.</p>
+            <p class="instruction-tip">&#128161; The template must be a <strong>.docx</strong> file (not .doc or .pdf).</p>
           </div>
 
           <div class="instruction-block">
             <h3>&#128202; Attendee Spreadsheet (.xlsx)</h3>
             <ol>
               <li>Open <strong>Microsoft Excel</strong> and create a new workbook (or use an existing one).</li>
-              <li>Add column headers in <strong>Row 1</strong> &mdash; for example: <code>Name</code>, <code>Organization</code>, <code>Date of Attendance</code>.</li>
+              <li>Add column headers in <strong>Row 1</strong> &mdash; for example: <code>Name</code>, <code>Organization</code>, <code>Course Name</code>, <code>Date of Attendance</code>.</li>
               <li>Fill in one row per attendee starting in <strong>Row 2</strong>.</li>
               <li>Save the file as <strong>.xlsx</strong> (Excel Workbook).</li>
             </ol>
@@ -55,7 +49,7 @@
           <h3>&#127891; Generating Your Certificates</h3>
           <ol>
             <li>In <strong>Step 1</strong> below, click each box to select your spreadsheet and your template from your computer.</li>
-            <li>In <strong>Step 2</strong>, the tool will show a preview of your data. Use the dropdowns to tell it which column is the name, organization, and date. Verify the placeholder text matches your template.</li>
+            <li>In <strong>Step 2</strong>, the tool will show a preview of your data. Use the dropdowns to tell it which column is the Name, Organization, Course Name, and Date of Attendance.</li>
             <li>In <strong>Step 3</strong>, choose your output format (PDF, DOCX, or both) and click <strong>Generate Certificates</strong>.</li>
             <li>When the progress bar finishes, click <strong>Download All Certificates (ZIP)</strong> to save them to your computer.</li>
           </ol>
@@ -88,7 +82,7 @@
       <div class="data-preview-wrapper">
         <table class="data-preview" id="data-preview"></table>
       </div>
-      <p class="mapping-hint">Select which spreadsheet column holds each field, then enter the matching placeholder text from your Word template.</p>
+      <p class="mapping-hint">Select which spreadsheet column holds each certificate field. The tool fills the template's built-in content controls automatically.</p>
       <div class="mapping-grid">
         <div class="mapping-row">
           <div class="mapping-field">
@@ -96,28 +90,18 @@
             <select id="name-col"></select>
           </div>
           <div class="mapping-field">
-            <label for="name-ph">Placeholder in template</label>
-            <input type="text" id="name-ph" value="[name]">
-          </div>
-        </div>
-        <div class="mapping-row">
-          <div class="mapping-field">
             <label for="org-col">Organization column</label>
             <select id="org-col"></select>
           </div>
-          <div class="mapping-field">
-            <label for="org-ph">Placeholder in template</label>
-            <input type="text" id="org-ph" value="[organization]">
-          </div>
         </div>
         <div class="mapping-row">
           <div class="mapping-field">
-            <label for="date-col">Date of Attendance column</label>
-            <select id="date-col"></select>
+            <label for="course-col">Course Name column</label>
+            <select id="course-col"></select>
           </div>
           <div class="mapping-field">
-            <label for="date-ph">Placeholder in template</label>
-            <input type="text" id="date-ph" value="[date]">
+            <label for="date-col">Date of Attendance column</label>
+            <select id="date-col"></select>
           </div>
         </div>
       </div>

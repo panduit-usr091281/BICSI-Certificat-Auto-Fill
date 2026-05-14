@@ -24,9 +24,7 @@
   var nameCol          = document.getElementById('name-col');
   var orgCol           = document.getElementById('org-col');
   var dateCol          = document.getElementById('date-col');
-  var namePH           = document.getElementById('name-ph');
-  var orgPH            = document.getElementById('org-ph');
-  var datePH           = document.getElementById('date-ph');
+  var courseCol         = document.getElementById('course-col');
 
   var generateSection  = document.getElementById('step-generate');
   var outputFormat     = document.getElementById('output-format');
@@ -111,7 +109,7 @@
 
   function populateSelects() {
     var cols = worksheetData.columns;
-    [nameCol, orgCol, dateCol].forEach(function (sel) {
+    [nameCol, orgCol, dateCol, courseCol].forEach(function (sel) {
       sel.innerHTML = '';
       cols.forEach(function (c) {
         var opt = document.createElement('option');
@@ -120,9 +118,10 @@
         sel.appendChild(opt);
       });
     });
-    autoDetect(nameCol, cols, ['name', 'full name', 'student', 'participant', 'attendee']);
-    autoDetect(orgCol,  cols, ['organization', 'org', 'company', 'employer']);
-    autoDetect(dateCol, cols, ['date', 'attendance', 'date of attendance', 'completion']);
+    autoDetect(nameCol,   cols, ['name', 'full name', 'student', 'participant', 'attendee']);
+    autoDetect(orgCol,    cols, ['organization', 'org', 'company', 'employer']);
+    autoDetect(dateCol,   cols, ['date', 'attendance', 'date of attendance', 'completion']);
+    autoDetect(courseCol,  cols, ['course', 'class', 'training', 'program', 'session']);
   }
 
   function autoDetect(selectEl, cols, keywords) {
@@ -140,42 +139,41 @@
   });
 
   /* ==================================================================
-     3. DOCX TEMPLATE FILLING (pure string replacement — no XML parsing)
-     Avoids DOMParser/XMLSerializer which can destroy text boxes, lines,
-     drawings, and other rich OOXML features.
+     3. DOCX TEMPLATE FILLING
+     The BICSI template uses Word Content Controls (Structured Document
+     Tags — <w:sdt>) identified by <w:tag w:val="…"/>.  We locate each
+     SDT block by its tag name and replace ALL <w:t> text inside the
+     content body (<w:sdtContent>) with the new value.
+     This approach never parses or re-serialises the XML, so every
+     text box, line, shape, image, and drawing is preserved byte-for-byte.
      ================================================================== */
 
   /**
-   * Fill the template with one set of replacement values.
-   * Returns a Promise<ArrayBuffer> of the completed .docx.
+   * Fill the template with one row of data.
+   * `fieldMap` is { tagName: newValue } e.g.
+   *   { StudentNameFirstLast: "John Doe", CompanyName: "Panduit", … }
    */
-  async function fillTemplate(templateBuf, replacements) {
+  async function fillTemplate(templateBuf, fieldMap) {
     var zip = await JSZip.loadAsync(templateBuf);
 
-    // Collect XML parts that can contain text
+    // Process every XML part that may contain content controls
     var parts = ['word/document.xml'];
     zip.forEach(function (path) {
       if (/^word\/(header|footer)\d*\.xml$/.test(path)) parts.push(path);
     });
 
-    // Build safe replacements (XML-escape the values)
-    var safeReplacements = {};
-    for (var key in replacements) {
-      safeReplacements[key] = escapeXml(replacements[key]);
-    }
-
     for (var i = 0; i < parts.length; i++) {
       var f = zip.file(parts[i]);
       if (!f) continue;
       var xml = await f.async('string');
-      xml = replacePlaceholders(xml, safeReplacements);
+      xml = fillContentControls(xml, fieldMap);
       zip.file(parts[i], xml);
     }
 
     return zip.generateAsync({ type: 'arraybuffer' });
   }
 
-  /** Escape special XML characters so replacement values don't break the doc. */
+  /** Escape special XML characters in replacement values. */
   function escapeXml(str) {
     return str.replace(/&/g, '&amp;')
               .replace(/</g, '&lt;')
@@ -185,119 +183,55 @@
   }
 
   /**
-   * Replace placeholders in the raw XML string without ever parsing it.
-   * This preserves every byte of the original structure (text boxes, VML
-   * shapes, drawings, SmartArt, etc.) — only the placeholder text changes.
+   * Find every <w:sdt>…</w:sdt> block whose <w:tag w:val="TAG"/>
+   * matches a key in fieldMap, and replace the text inside its
+   * <w:sdtContent> with the corresponding value.
    *
-   * Strategy:
-   *  1. Direct string replacement (covers placeholders inside a single <w:t>).
-   *  2. Cross-run handler: if a placeholder is split across multiple <w:t>
-   *     elements by Word, we find it in each <w:p> block and stitch the
-   *     runs back together.
+   * Strategy for each matched SDT:
+   *  - Keep the FIRST <w:t> element and set its text to the new value.
+   *  - Empty every OTHER <w:t> so the value isn't duplicated.
+   *  - Everything else (run properties, formatting, structure) is untouched.
    */
-  function replacePlaceholders(xmlStr, safeReplacements) {
-    for (var ph in safeReplacements) {
-      var val = safeReplacements[ph];
+  function fillContentControls(xmlStr, fieldMap) {
+    // Match each <w:sdt>…</w:sdt> (non-greedy, handles nesting via counting)
+    var sdtRe = /<w:sdt[\s>][\s\S]*?<\/w:sdt>/g;
 
-      // --- Pass 1: simple same-run replacement ---
-      if (xmlStr.indexOf(ph) !== -1) {
-        xmlStr = xmlStr.split(ph).join(val);
-      }
+    return xmlStr.replace(sdtRe, function (sdtBlock) {
+      // Which tag does this SDT have?
+      var tagMatch = sdtBlock.match(/<w:tag\s+w:val="([^"]*)"/);
+      if (!tagMatch) return sdtBlock;   // no tag — leave alone
 
-      // --- Pass 2: cross-run replacement ---
-      // Only needed if any <w:p> block's concatenated <w:t> text still
-      // contains the placeholder after pass 1 (i.e. it was split across runs).
-      xmlStr = replaceCrossRun(xmlStr, ph, val);
-    }
-    return xmlStr;
-  }
+      var tagName = tagMatch[1];
+      if (!(tagName in fieldMap)) return sdtBlock;  // not a field we care about
 
-  /**
-   * Handle the case where Word split a placeholder across multiple <w:r>/<w:t>
-   * elements.  Works entirely on the raw XML string — no DOM parsing.
-   *
-   * For each <w:p>…</w:p> block:
-   *   1. Extract all <w:t …>text</w:t> fragments and their string offsets.
-   *   2. Concatenate the text.  If the placeholder isn't present, skip.
-   *   3. Put the replacement value into the first <w:t> that touched the
-   *      placeholder and empty the remaining fragments.
-   */
-  function replaceCrossRun(xmlStr, placeholder, value) {
-    // Regex to match paragraph blocks (non-greedy within <w:p>…</w:p>)
-    var paraRe = /<w:p[\s>][\s\S]*?<\/w:p>/g;
+      var newValue = escapeXml(fieldMap[tagName]);
 
-    return xmlStr.replace(paraRe, function (paraXml) {
-      // Collect every <w:t …>text</w:t> inside this paragraph
-      var tRe    = /(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
-      var pieces = [];   // { open, text, close, index, length } in order
-      var m;
+      // Find the <w:sdtContent>…</w:sdtContent> portion
+      var contentStart = sdtBlock.indexOf('<w:sdtContent');
+      if (contentStart === -1) return sdtBlock;
 
-      while ((m = tRe.exec(paraXml)) !== null) {
-        pieces.push({
-          open:   m[1],          // e.g.  <w:t xml:space="preserve">
-          text:   m[2],          // the actual text content
-          close:  m[3],          // </w:t>
-          start:  m.index,       // offset inside paraXml
-          len:    m[0].length    // full match length
-        });
-      }
+      var beforeContent = sdtBlock.substring(0, contentStart);
+      var contentAndAfter = sdtBlock.substring(contentStart);
 
-      if (pieces.length === 0) return paraXml;
-
-      // Build concatenated plain text
-      var fullText = pieces.map(function (p) { return p.text; }).join('');
-      var idx = fullText.indexOf(placeholder);
-      if (idx === -1) return paraXml;  // nothing to do
-
-      // Walk through occurrences
-      while (idx !== -1) {
-        var endIdx = idx + placeholder.length;
-
-        // Map character positions → piece indexes
-        var charPos = 0;
-        var firstPiece = -1, firstOff = 0, lastPiece = -1, lastOff = 0;
-
-        for (var pi = 0; pi < pieces.length; pi++) {
-          var pLen = pieces[pi].text.length;
-          if (firstPiece === -1 && charPos + pLen > idx) {
-            firstPiece = pi;
-            firstOff   = idx - charPos;
+      // Replace text in <w:t> elements inside the content section
+      var isFirst = true;
+      var replaced = contentAndAfter.replace(
+        /(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g,
+        function (full, open, _text, close) {
+          if (isFirst) {
+            isFirst = false;
+            // Ensure xml:space="preserve" so spaces aren't trimmed
+            if (open.indexOf('xml:space') === -1) {
+              open = open.replace('>', ' xml:space="preserve">');
+            }
+            return open + newValue + close;
           }
-          if (charPos + pLen >= endIdx) {
-            lastPiece = pi;
-            lastOff   = endIdx - charPos;
-            break;
-          }
-          charPos += pLen;
+          // Empty subsequent <w:t> elements
+          return open + close;
         }
+      );
 
-        // Rewrite the text content of the affected pieces
-        var before = pieces[firstPiece].text.substring(0, firstOff);
-        var after  = pieces[lastPiece].text.substring(lastOff);
-
-        pieces[firstPiece].text = before + value + (firstPiece === lastPiece ? after : '');
-
-        if (firstPiece !== lastPiece) {
-          for (var ci = firstPiece + 1; ci < lastPiece; ci++) {
-            pieces[ci].text = '';
-          }
-          pieces[lastPiece].text = after;
-        }
-
-        // Recheck for another occurrence
-        fullText = pieces.map(function (p) { return p.text; }).join('');
-        idx = fullText.indexOf(placeholder);
-      }
-
-      // Rebuild the paragraph XML from right to left (so offsets stay valid)
-      var result = paraXml;
-      for (var ri = pieces.length - 1; ri >= 0; ri--) {
-        var pc    = pieces[ri];
-        var rebuilt = pc.open + pc.text + pc.close;
-        result = result.substring(0, pc.start) + rebuilt + result.substring(pc.start + pc.len);
-      }
-
-      return result;
+      return beforeContent + replaced;
     });
   }
 
@@ -365,14 +299,7 @@
     var nCol     = nameCol.value;
     var oCol     = orgCol.value;
     var dCol     = dateCol.value;
-    var nPH      = namePH.value;
-    var oPH      = orgPH.value;
-    var dPH      = datePH.value;
-
-    if (!nPH || !oPH || !dPH) {
-      alert('Please fill in all three placeholder fields.');
-      return;
-    }
+    var cCol     = courseCol.value;
 
     // Check that docx-preview is available when PDF is requested
     if (fmt !== 'docx' && typeof docx === 'undefined') {
@@ -397,14 +324,19 @@
         var name = String(row[nCol] != null ? row[nCol] : '').trim();
         var org  = String(row[oCol] != null ? row[oCol] : '').trim();
         var dateVal = row[dCol];
+        var course = String(row[cCol] != null ? row[cCol] : '').trim();
 
         if (!name) { skipped++; setProgress(i + 1, total, 'Skipping empty row…'); continue; }
 
         var dateStr = formatDateValue(dateVal);
-        var repl    = {};
-        repl[nPH]   = name;
-        repl[oPH]   = org;
-        repl[dPH]   = dateStr;
+
+        // Map SDT tag names → values from the spreadsheet row
+        var fieldMap = {
+          StudentNameFirstLast: name,
+          CompanyName:          org,
+          IssueDate:            dateStr,
+          CourseName:           course
+        };
 
         var safeName = sanitize(name);
         var safeOrg  = sanitize(org).substring(0, 20);
@@ -419,7 +351,7 @@
         }
 
         setProgress(i + 1, total, 'Filling template for ' + name + '…');
-        var filledDocx = await fillTemplate(templateBuffer, repl);
+        var filledDocx = await fillTemplate(templateBuffer, fieldMap);
 
         if (fmt === 'docx' || fmt === 'both') {
           outZip.file(baseName + '.docx', filledDocx);
