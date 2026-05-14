@@ -163,7 +163,31 @@
       zip.file(parts[i], xml);
     }
 
+    // Lock the document as read-only so the certificate cannot be edited
+    var settingsFile = zip.file('word/settings.xml');
+    if (settingsFile) {
+      var settingsXml = await settingsFile.async('string');
+      settingsXml = addReadOnlyProtection(settingsXml);
+      zip.file('word/settings.xml', settingsXml);
+    }
+
     return zip.generateAsync({ type: 'arraybuffer' });
+  }
+
+  /**
+   * Inject <w:documentProtection w:edit="readOnly" w:enforcement="1"/>
+   * into the <w:settings> element.  Removes any existing protection
+   * node first to avoid duplicates.
+   */
+  function addReadOnlyProtection(settingsXml) {
+    // Remove any existing documentProtection element
+    settingsXml = settingsXml.replace(/<w:documentProtection[^/>]*\/>/g, '');
+    settingsXml = settingsXml.replace(/<w:documentProtection[^>]*>[\s\S]*?<\/w:documentProtection>/g, '');
+
+    // Insert just before </w:settings>
+    var protection = '<w:documentProtection w:edit="readOnly" w:enforcement="1"/>';
+    settingsXml = settingsXml.replace('</w:settings>', protection + '</w:settings>');
+    return settingsXml;
   }
 
   /** Escape special XML characters in replacement values. */
